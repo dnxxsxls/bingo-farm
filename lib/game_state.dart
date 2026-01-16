@@ -31,10 +31,12 @@ class GameState extends ChangeNotifier {
     return false;
   }
 
-  void unlockCrop(CropType crop) {
-    if (!_unlockedCrops.contains(crop)) {
-      if (spendSilver(crop.unlockCost)) {
-        _unlockedCrops.add(crop);
+  /// 작물 해금: 이전 작물을 수확했는지 확인하여 자동 해금
+  void tryUnlockNextCrop(CropType harvestedCrop) {
+    final nextCrop = harvestedCrop.nextCrop;
+    if (nextCrop != null && !_unlockedCrops.contains(nextCrop)) {
+      if (nextCrop.canUnlock(_unlockedCrops)) {
+        _unlockedCrops.add(nextCrop);
         notifyListeners();
       }
     }
@@ -64,9 +66,14 @@ class GameState extends ChangeNotifier {
 
   void harvestCrop(int row, int col) {
     if (canHarvest(row, col)) {
+      final cropType = _tiles[row][col].cropType;
       final reward = _tiles[row][col].harvest();
       if (reward > 0) {
         addSilver(reward);
+        // 작물을 수확하면 다음 작물 자동 해금 시도
+        if (cropType != null) {
+          tryUnlockNextCrop(cropType);
+        }
       }
     }
   }
@@ -89,5 +96,15 @@ class GameState extends ChangeNotifier {
 
   bool isCropUnlocked(CropType crop) {
     return _unlockedCrops.contains(crop);
+  }
+
+  /// 다음 해금 가능한 작물 반환
+  CropType? getNextUnlockableCrop() {
+    for (final crop in CropType.values) {
+      if (!_unlockedCrops.contains(crop) && crop.canUnlock(_unlockedCrops)) {
+        return crop;
+      }
+    }
+    return null;
   }
 }

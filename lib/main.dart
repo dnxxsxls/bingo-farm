@@ -169,31 +169,61 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _buildUnlockButtons() {
+    final nextCrop = gameState.getNextUnlockableCrop();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          '작물 해금:',
+          '작물 해금 안내:',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          children: CropType.values.where((crop) => !gameState.isCropUnlocked(crop)).map((crop) {
-            return ElevatedButton(
-              onPressed: gameState.silver >= crop.unlockCost
-                  ? () => gameState.unlockCrop(crop)
-                  : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: gameState.silver >= crop.unlockCost
-                    ? Colors.blue.shade200
-                    : Colors.grey.shade300,
-                foregroundColor: Colors.black87,
-              ),
-              child: Text('${crop.name} 해금 (${crop.unlockCost} 은화)'),
-            );
-          }).toList(),
-        ),
+        if (nextCrop != null)
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.blue.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '${nextCrop.previousCrop?.name ?? ""} 수확 시 ${nextCrop.name} 자동 해금!',
+                    style: TextStyle(
+                      color: Colors.blue.shade900,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.green.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green.shade700, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  '모든 작물이 해금되었습니다!',
+                  style: TextStyle(
+                    color: Colors.green.shade900,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
       ],
     );
   }
