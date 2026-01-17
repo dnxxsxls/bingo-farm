@@ -128,12 +128,36 @@ extension CropTypeExtension on CropType {
     }
   }
 
-  /// 해금 조건: 이전 작물을 수확했는지
+  /// 해금 조건: 이전 작물이 해금되어 있는지 확인
   bool canUnlock(List<CropType> unlockedCrops) {
     if (this == CropType.carrot) {
       return true; // 기본 해금
     }
     final previous = previousCrop;
     return previous != null && unlockedCrops.contains(previous);
+  }
+
+  /// 해금 비용 계산 (점진적으로 증가)
+  int getUnlockCost() {
+    switch (this) {
+      case CropType.carrot:
+        return 0; // 기본 해금
+      case CropType.potato:
+        return 10; // 10 은화
+      case CropType.corn:
+        return 25; // 25 은화
+      case CropType.tomato:
+        return 50; // 50 은화
+      case CropType.taro:
+        return 100; // 100 은화
+      case CropType.eggplant:
+        return 200; // 200 은화
+      case CropType.bean:
+        return 400; // 400 은화
+      case CropType.watermelon:
+        return 800; // 800 은화
+      case CropType.pumpkin:
+        return 1600; // 1600 은화
+    }
   }
 }

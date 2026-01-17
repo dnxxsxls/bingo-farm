@@ -31,13 +31,15 @@ class GameState extends ChangeNotifier {
     return false;
   }
 
-  /// 작물 해금: 이전 작물을 수확했는지 확인하여 자동 해금
-  void tryUnlockNextCrop(CropType harvestedCrop) {
-    final nextCrop = harvestedCrop.nextCrop;
-    if (nextCrop != null && !_unlockedCrops.contains(nextCrop)) {
-      if (nextCrop.canUnlock(_unlockedCrops)) {
-        _unlockedCrops.add(nextCrop);
-        notifyListeners();
+  /// 작물 해금: 은화를 지불하여 해금
+  void unlockCrop(CropType crop) {
+    if (!_unlockedCrops.contains(crop)) {
+      if (crop.canUnlock(_unlockedCrops)) {
+        final cost = crop.getUnlockCost();
+        if (spendSilver(cost)) {
+          _unlockedCrops.add(crop);
+          notifyListeners();
+        }
       }
     }
   }
@@ -56,29 +58,28 @@ class GameState extends ChangeNotifier {
   void plantCrop(int row, int col) {
     if (canPlant(row, col) && _selectedCrop != null) {
       _tiles[row][col].plant(_selectedCrop!);
+      // 심은 직후 상태 즉시 업데이트 (updateState는 plant 내부에서 호출되지만, 확실히 하기 위해)
+      _tiles[row][col].updateState();
       notifyListeners();
     }
   }
 
   bool canHarvest(int row, int col) {
-    return _tiles[row][col].state == TileState.ready;
+    return _tiles[row][col].state == TileState.harvest;
   }
 
   void harvestCrop(int row, int col) {
     if (canHarvest(row, col)) {
-      final cropType = _tiles[row][col].cropType;
       final reward = _tiles[row][col].harvest();
       if (reward > 0) {
         addSilver(reward);
-        // 작물을 수확하면 다음 작물 자동 해금 시도
-        if (cropType != null) {
-          tryUnlockNextCrop(cropType);
-        }
       }
+      notifyListeners(); // 수확 후 상태 변경 알림
     }
   }
 
-  void updateTiles() {
+  /// 타일 상태를 업데이트하고 변경 여부를 반환
+  bool updateTiles() {
     bool changed = false;
     for (var row in _tiles) {
       for (var tile in row) {
@@ -92,6 +93,7 @@ class GameState extends ChangeNotifier {
     if (changed) {
       notifyListeners();
     }
+    return changed;
   }
 
   bool isCropUnlocked(CropType crop) {
@@ -106,5 +108,10 @@ class GameState extends ChangeNotifier {
       }
     }
     return null;
+  }
+
+  /// 작물 해금 비용 반환
+  int getUnlockCost(CropType crop) {
+    return crop.getUnlockCost();
   }
 }

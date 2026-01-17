@@ -44,10 +44,14 @@ class _GameScreenState extends State<GameScreen> {
     game = TileFarmGame(gameState: gameState);
     gameState.addListener(_onGameStateChanged);
 
-    // 1초마다 타일 상태 업데이트
-    _updateTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      gameState.updateTiles();
-      game.refreshTiles();
+    // 0.1초마다 타일 상태 업데이트 및 UI 새로고침 (더 정확한 타이밍 체크)
+    _updateTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
+      final hadChanges = gameState.updateTiles(); // 상태 변경 여부 확인
+      // 상태가 변경되었으면 타일 컴포넌트 다시 생성하여 이미지 업데이트
+      // Flame 컴포넌트는 상태 변경 시 자동으로 재렌더링되지 않으므로 명시적으로 업데이트
+      if (hadChanges) {
+        game.refreshTiles();
+      }
     });
   }
 
@@ -61,7 +65,7 @@ class _GameScreenState extends State<GameScreen> {
 
   void _onGameStateChanged() {
     setState(() {
-      // 게임 상태 변경 시 타일 업데이트
+      // 게임 상태 변경 시 타일 즉시 업데이트
       game.refreshTiles();
     });
   }
@@ -69,7 +73,7 @@ class _GameScreenState extends State<GameScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.brown.shade100,
+      backgroundColor: Colors.transparent, // 배경 투명하게
       body: SafeArea(
         child: Column(
           children: [
@@ -174,30 +178,36 @@ class _GameScreenState extends State<GameScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          '작물 해금 안내:',
+          '작물 해금:',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         if (nextCrop != null)
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.blue.shade50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.blue.shade200),
+          ElevatedButton(
+            onPressed: gameState.silver >= gameState.getUnlockCost(nextCrop)
+                ? () => gameState.unlockCrop(nextCrop)
+                : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: gameState.silver >= gameState.getUnlockCost(nextCrop)
+                  ? Colors.blue.shade200
+                  : Colors.grey.shade300,
+              foregroundColor: Colors.black87,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
             child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                Icon(
+                  Icons.lock_open,
+                  size: 18,
+                  color: gameState.silver >= gameState.getUnlockCost(nextCrop)
+                      ? Colors.black87
+                      : Colors.grey.shade600,
+                ),
                 const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '${nextCrop.previousCrop?.name ?? ""} 수확 시 ${nextCrop.name} 자동 해금!',
-                    style: TextStyle(
-                      color: Colors.blue.shade900,
-                      fontSize: 14,
-                    ),
-                  ),
+                Text(
+                  '${nextCrop.name} 해금 (${gameState.getUnlockCost(nextCrop)} 은화)',
+                  style: const TextStyle(fontSize: 14),
                 ),
               ],
             ),
